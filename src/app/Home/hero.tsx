@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Poppins } from 'next/font/google'
-import Partners from './Partners'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -16,39 +15,41 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [isMobile, setIsMobile] = useState(false)
+  const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    let animationFrameId: number
-
-    // Check if mobile device
+    // Check if mobile
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768)
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth <= 768)
+      }
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
 
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let animationFrameId: number
+
     const resizeCanvas = () => {
+      if (!canvas) return
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
     }
-
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    // Water wave effect
+    // Wave settings
     const waves = {
       centerX: 0,
       centerY: 0,
-      amplitude: window.innerWidth <= 768 ? 10 : 20, // Smaller amplitude on mobile
+      amplitude: window.innerWidth <= 768 ? 10 : 20,
       frequency: 0.02,
       phase: 0,
-      maxRadius: window.innerWidth <= 768 ? 150 : 300, // Smaller radius on mobile
+      maxRadius: window.innerWidth <= 768 ? 150 : 300,
       currentRadius: 0,
-      speed: window.innerWidth <= 768 ? 1 : 2, // Slower speed on mobile
+      speed: window.innerWidth <= 768 ? 1 : 2,
       opacity: 1,
       active: true,
     }
@@ -59,10 +60,9 @@ export default function Home() {
       ctx.beginPath()
       ctx.arc(waves.centerX, waves.centerY, waves.currentRadius, 0, Math.PI * 2)
       ctx.strokeStyle = `rgba(100, 150, 255, ${waves.opacity})`
-      ctx.lineWidth = window.innerWidth <= 768 ? 1 : 2 // Thinner line on mobile
+      ctx.lineWidth = window.innerWidth <= 768 ? 1 : 2
       ctx.stroke()
 
-      // Additional ripple for depth (only on larger screens)
       if (waves.currentRadius > 50 && !isMobile) {
         ctx.beginPath()
         ctx.arc(waves.centerX, waves.centerY, waves.currentRadius - 50, 0, Math.PI * 2)
@@ -78,7 +78,7 @@ export default function Home() {
       ctx.restore()
     }
 
-    // Initialize wave position
+    // Center waves
     waves.centerX = canvas.width / 2
     waves.centerY = canvas.height / 2
 
@@ -87,7 +87,6 @@ export default function Home() {
         setMousePos({ x: e.clientX, y: e.clientY })
       }
     }
-
     window.addEventListener('mousemove', handleMouseMove)
 
     const animate = () => {
@@ -96,7 +95,6 @@ export default function Home() {
       drawWaterWaves()
       animationFrameId = requestAnimationFrame(animate)
     }
-
     animate()
 
     return () => {
@@ -107,7 +105,17 @@ export default function Home() {
     }
   }, [isMobile])
 
-  // Animation variants for hero elements
+  // Update parallax offset on mouse move (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isMobile) {
+      setParallaxOffset({
+        x: -(mousePos.x - window.innerWidth / 2) / 50,
+        y: -(mousePos.y - window.innerHeight / 2) / 50,
+      })
+    }
+  }, [mousePos, isMobile])
+
+  // Animation variants
   const heroVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
@@ -116,14 +124,6 @@ export default function Home() {
       transition: { delay: i * 0.2, duration: 0.6, ease: 'easeOut' },
     }),
   }
-
-  // Parallax effect: Calculate transform based on mouse position (disabled on mobile)
-  const parallaxOffset = isMobile
-    ? { x: 0, y: 0 }
-    : {
-        x: -(mousePos.x - window.innerWidth / 2) / 50,
-        y: -(mousePos.y - window.innerHeight / 2) / 50,
-      }
 
   return (
     <main className={`relative min-h-screen bg-white overflow-hidden ${poppins.variable}`}>
@@ -170,11 +170,8 @@ export default function Home() {
           >
             Explore Work
           </Link>
-
-          {/* <Partners/> */}
         </motion.div>
       </section>
-
     </main>
   )
 }
